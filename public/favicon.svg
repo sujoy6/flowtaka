@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Dark modern background -->
+  <rect width="512" height="512" rx="128" fill="#020617" />
+  
+  <!-- Outer glowing orbit ring -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="url(#glowGrad)" stroke-width="8" opacity="0.3" stroke-dasharray="10 15" />
+  
+  <!-- Stylized Taka (৳) symbol -->
+  <g filter="url(#glow)">
+    <path d="M 280,140 
+             C 210,140 180,180 180,240 
+             C 180,310 220,350 280,350 
+             C 330,350 350,310 350,280 
+             L 280,280 
+             C 270,295 250,295 240,280 
+             C 230,265 235,240 250,225
+             C 265,210 290,210 310,225
+             L 360,180
+             C 330,150 310,140 280,140 Z
+             M 180,220 L 140,220 L 140,200 L 180,200 Z" 
+          fill="url(#glowGrad)" />
+    <!-- Taka diagonal slash -->
+    <path d="M 230,370 L 320,130" stroke="url(#glowGrad)" stroke-width="24" stroke-linecap="round" />
+  </g>
+</svg>

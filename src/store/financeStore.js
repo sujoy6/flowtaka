@@ -75,6 +75,16 @@ export const useFinanceStore = create((set, get) => ({
     });
   },
 
+  // Edit Budget Action (Polish without wiping history)
+  updateBudget: (startingBalance, monthlyIncome, emergencyReserve, cycleStartDate) => {
+    get()._save({
+      startingBalance: Number(startingBalance) || 0,
+      monthlyIncome: Number(monthlyIncome) || 0,
+      emergencyReserve: Number(emergencyReserve) || 0,
+      cycleStartDate: cycleStartDate || get().cycleStartDate,
+    });
+  },
+
   // Transaction Actions
   addTransaction: (amount, type, description, source = 'manual', date = null) => {
     const transaction = {

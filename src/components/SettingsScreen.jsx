@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFinanceStore } from '../store/financeStore';
-import { Lock, Unlock, Languages, Download, Upload, Trash2, Key, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { 
+  Lock, Unlock, Languages, Download, Upload, Trash2, Key, AlertTriangle, 
+  ShieldCheck, Coins, PiggyBank, Calendar, Save, Eye, EyeOff 
+} from 'lucide-react';
 
 export default function SettingsScreen() {
   const pinCode = useFinanceStore(state => state.pinCode);
@@ -11,6 +14,27 @@ export default function SettingsScreen() {
   const transactions = useFinanceStore(state => state.transactions);
   const importBackup = useFinanceStore(state => state.importBackup);
   
+  // Budget store values
+  const startingBalance = useFinanceStore(state => state.startingBalance);
+  const monthlyIncome = useFinanceStore(state => state.monthlyIncome);
+  const emergencyReserve = useFinanceStore(state => state.emergencyReserve);
+  const cycleStartDate = useFinanceStore(state => state.cycleStartDate);
+  const updateBudget = useFinanceStore(state => state.updateBudget);
+
+  // States for budget editing
+  const [editStartBal, setEditStartBal] = useState(startingBalance);
+  const [editIncome, setEditIncome] = useState(monthlyIncome);
+  const [editReserve, setEditReserve] = useState(emergencyReserve);
+  const [editDate, setEditDate] = useState(cycleStartDate);
+
+  // Sync editing fields with store state on change
+  useEffect(() => {
+    setEditStartBal(startingBalance);
+    setEditIncome(monthlyIncome);
+    setEditReserve(emergencyReserve);
+    setEditDate(cycleStartDate);
+  }, [startingBalance, monthlyIncome, emergencyReserve, cycleStartDate]);
+
   // Store values for backup export
   const storeState = useFinanceStore(state => ({
     startingBalance: state.startingBalance,
@@ -27,6 +51,7 @@ export default function SettingsScreen() {
 
   const [pinInput, setPinInput] = useState('');
   const [showPinSetup, setShowPinSetup] = useState(false);
+  const [showPinText, setShowPinText] = useState(false);
 
   const t = {
     en: {
@@ -48,7 +73,16 @@ export default function SettingsScreen() {
       successBackup: "Backup restored successfully!",
       errorBackup: "Invalid backup file.",
       csvName: "FlowTaka_Report.csv",
-      backupName: "FlowTaka_Backup.json"
+      backupName: "FlowTaka_Backup.json",
+      
+      // Budget edit translations
+      budgetTitle: "Adjust Budget Goals",
+      startBalLabel: "Starting Balance (৳)",
+      incomeLabel: "Expected Monthly Income (৳)",
+      reserveLabel: "Emergency Reserve (৳)",
+      cycleLabel: "Billing Cycle Reset Date",
+      saveBudgetBtn: "Save Budget Settings",
+      successBudget: "Budget goals updated successfully!"
     },
     bn: {
       secTitle: "নিরাপত্তা সেটিংস",
@@ -69,7 +103,16 @@ export default function SettingsScreen() {
       successBackup: "ব্যাকআপ সফলভাবে রিস্টোর করা হয়েছে!",
       errorBackup: "ত্রুটিপূর্ণ ব্যাকআপ ফাইল।",
       csvName: "ফ্লোটাকা_রিপোর্ট.csv",
-      backupName: "ফ্লোটাকা_ব্যাকআপ.json"
+      backupName: "ফ্লোটাকা_ব্যাকআপ.json",
+
+      // Budget edit translations
+      budgetTitle: "বাজেট ও লক্ষ্য সংশোধন",
+      startBalLabel: "প্রারম্ভিক ব্যালেন্স (৳)",
+      incomeLabel: "মাসিক আয়ের লক্ষ্য (৳)",
+      reserveLabel: "জরুরী তহবিল (৳)",
+      cycleLabel: "হিসাব চক্র শুরুর তারিখ",
+      saveBudgetBtn: "বাজেট তথ্য সংশোধন করুন",
+      successBudget: "বাজেট তথ্য সফলভাবে আপডেট করা হয়েছে!"
     }
   }[language];
 
@@ -80,6 +123,7 @@ export default function SettingsScreen() {
       setPin(pinInput);
       setPinInput('');
       setShowPinSetup(false);
+      setShowPinText(false);
     } else {
       alert(language === 'en' ? 'PIN must be exactly 4 digits' : 'পিন ঠিক ৪ সংখ্যার হতে হবে');
     }
@@ -87,6 +131,13 @@ export default function SettingsScreen() {
 
   const handleDisablePin = () => {
     setPin('');
+  };
+
+  // Budget Edit Submission
+  const handleBudgetSubmit = (e) => {
+    e.preventDefault();
+    updateBudget(editStartBal, editIncome, editReserve, editDate);
+    alert(t.successBudget);
   };
 
   // CSV Generation
@@ -99,7 +150,6 @@ export default function SettingsScreen() {
     const headers = 'ID,Date,Type,Amount (BDT),Description,Source\n';
     const rows = transactions.map(t => {
       const dateStr = t.timestamp.split('T')[0];
-      // Clean commas from descriptions to prevent breaking CSV cells
       const cleanDesc = t.description.replace(/,/g, ' ');
       return `"${t.id}","${dateStr}","${t.type === 'in' ? 'Money In' : 'Money Out'}",${t.amount},"${cleanDesc}","${t.source}"`;
     }).join('\n');
@@ -134,11 +184,14 @@ export default function SettingsScreen() {
       const success = importBackup(event.target.result);
       if (success) {
         alert(t.successBackup);
+        // Refresh page to load parsed state fully
+        window.location.reload();
       } else {
         alert(t.errorBackup);
       }
     };
     fileReader.readAsText(file);
+    e.target.value = ''; // Reset target value to allow re-uploading
   };
 
   const handleClear = () => {
@@ -181,7 +234,69 @@ export default function SettingsScreen() {
         </div>
       </div>
 
-      {/* 2. Security / PIN Lock */}
+      {/* 2. Budget Editing Panel (Polish: Avoid wiping history) */}
+      <div className="p-4 rounded-3xl border border-slate-850 glass space-y-3.5">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+          <Coins className="w-4 h-4 text-emerald-400" />
+          {t.budgetTitle}
+        </h3>
+
+        <form onSubmit={handleBudgetSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400">{t.startBalLabel}</label>
+              <input
+                type="number"
+                value={editStartBal}
+                onChange={e => setEditStartBal(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-semibold focus:outline-none focus:border-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400">{t.incomeLabel}</label>
+              <input
+                type="number"
+                value={editIncome}
+                onChange={e => setEditIncome(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-semibold focus:outline-none focus:border-slate-700"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400">{t.reserveLabel}</label>
+              <input
+                type="number"
+                value={editReserve}
+                onChange={e => setEditReserve(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-semibold focus:outline-none focus:border-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400">{t.cycleLabel}</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-semibold focus:outline-none focus:border-slate-700"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-850 hover:border-slate-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Save className="w-3.5 h-3.5 text-emerald-400" />
+            {t.saveBudgetBtn}
+          </button>
+        </form>
+      </div>
+
+      {/* 3. Security / PIN Lock */}
       <div className="p-4 rounded-3xl border border-slate-850 glass space-y-3.5">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
           <Key className="w-4 h-4 text-emerald-400" />
@@ -217,22 +332,33 @@ export default function SettingsScreen() {
               </button>
             ) : (
               <form onSubmit={handleActivatePin} className="space-y-2.5 animate-fade-in pt-1">
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  required
-                  placeholder={t.enterPin}
-                  value={pinInput}
-                  onChange={e => setPinInput(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-center text-white text-xs tracking-widest placeholder-slate-700 focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showPinText ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={4}
+                    required
+                    placeholder={t.enterPin}
+                    value={pinInput}
+                    onChange={e => setPinInput(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-center text-white text-xs tracking-widest placeholder-slate-700 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPinText(!showPinText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                  >
+                    {showPinText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowPinSetup(false);
                       setPinInput('');
+                      setShowPinText(false);
                     }}
                     className="flex-1 py-2 bg-slate-800 text-slate-400 rounded-lg text-[11px] font-bold"
                   >
@@ -251,7 +377,7 @@ export default function SettingsScreen() {
         )}
       </div>
 
-      {/* 3. Export / Import */}
+      {/* 4. Export / Import */}
       <div className="p-4 rounded-3xl border border-slate-850 glass space-y-3">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
           <Download className="w-4 h-4 text-purple-400" />
@@ -275,26 +401,21 @@ export default function SettingsScreen() {
             {t.exportJson}
           </button>
 
-          {/* Import trigger */}
-          <div className="relative">
+          {/* Import trigger: Polished single label mechanism (No overlay tap hacks) */}
+          <label className="w-full py-3 bg-slate-900/60 hover:bg-slate-850 border border-slate-850 hover:border-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-200">
+            <Upload className="w-4 h-4 text-emerald-400" />
+            {t.importJson}
             <input
               type="file"
               accept=".json"
               onChange={handleImportJson}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              className="hidden"
             />
-            <button
-              type="button"
-              className="w-full py-3 bg-slate-900/60 hover:bg-slate-850 text-slate-200 border border-slate-850 hover:border-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 pointer-events-none"
-            >
-              <Upload className="w-4 h-4 text-emerald-400" />
-              {t.importJson}
-            </button>
-          </div>
+          </label>
         </div>
       </div>
 
-      {/* 4. Danger Zone */}
+      {/* 5. Danger Zone */}
       <div className="p-4 rounded-3xl border border-rose-950/20 bg-rose-950/5 space-y-3.5">
         <h3 className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
           <AlertTriangle className="w-4 h-4" />
